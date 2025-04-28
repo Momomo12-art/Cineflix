@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!--Good
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CineFlix - Streaming</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#5D5CDE',
+            secondary: {
+              light: '#f4f4f4',
+              dark: '#222'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .star {
+      cursor: pointer;
+      font-size: 1.4em;
+      color: #ccc;
+      transition: color 0.2s;
+    }
+    .star.selected {
+      color: gold;
+    }
+    .dark .star:not(.selected) {
+      color: #555;
+    }
+    .card {
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+  </style>
+</head>
+<body class="bg-secondary-light dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+  <!-- Detect dark mode preference -->
+  <script>
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      if (event.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    });
+  </script>
+
+  <!-- Header appears only in catalog view -->
+  <header id="appHeader" class="hidden bg-secondary-dark dark:bg-gray-800 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">CineFlix</h1>
+      <button id="logoutBtn" class="bg-primary hover:bg-opacity-80 text-white px-4 py-2 rounded-lg transition">Sair</button>
+    </div>
+  </header>
+
+  <!-- Login View -->
+  <div id="loginView" class="container mx-auto px-4">
+    <div class="max-w-md mx-auto mt-16 bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden p-6">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-primary mb-2">CineFlix</h2>
+        <p class="text-gray-600 dark:text-gray-400">Sua plataforma de streaming</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Usuário</label>
+          <input type="text" id="username" placeholder="Digite seu usuário" 
+                 class="w-full px-4 py-3 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
+          <input type="password" id="password" placeholder="Digite sua senha" 
+                 class="w-full px-4 py-3 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div id="loginError" class="text-red-500 text-sm hidden">Usuário ou senha incorretos!</div>
+        <button type="submit" class="w-full bg-primary hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+          Entrar
+        </button>
+        <div class="text-sm text-center text-gray-600 dark:text-gray-400 mt-4">
+          Use usuário: "admin" e senha: "admin" para entrar
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Catalog View -->
+  <div id="catalogView" class="hidden container mx-auto px-4 py-8">
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">Catálogo</h2>
+        <div class="flex space-x-2">
+          <select id="filterCategoria" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-base">
+            <option value="all">Todas categorias</option>
+            <option value="Filme">Filmes</option>
+            <option value="Série">Séries</option>
+            <option value="Novela">Novelas</option>
+            <option value="Anime">Animes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="catalogo" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+  </div>
+
+  <script>
+    // Data and variables
+    const users = [{ username: "admin", password: "admin" }];
+    let isLoggedIn = false;
+    
+    const catalogo = [
+      {
+        titulo: "Amanhecer no Oceano",
+        descricao: "Um filme sobre coragem e superação em alto-mar.",
+        link: "https://drive.google.com/file/d/EXEMPLO1/view",
+        categoria: "Filme",
+        imagem: "ocean" // Programmatically generated
+      },
+      {
+        titulo: "Mistérios da Cidade",
+        descricao: "Uma série de mistério com suspense eletrizante em uma pequena cidade.",
+        link: "https://drive.google.com/file/d/EXEMPLO2/view",
+        categoria: "Série",
+        imagem: "city" // Programmatically generated
+      },
+      {
+        titulo: "Família Imperial",
+        descricao: "Drama familiar em meio à política e intrigas da corte.",
+        link: "https://drive.google.com/file/d/EXEMPLO3/view",
+        categoria: "Novela",
+        imagem: "palace" // Programmatically generated
+      },
+      {
+        titulo: "Mundo Mágico",
+        descricao: "Uma aventura épica em um mundo de fantasia com poderes extraordinários.",
+        link: "https://drive.google.com/file/d/EXEMPLO4/view",
+        categoria: "Anime",
+        imagem: "magic" // Programmatically generated
+      },
+      {
+        titulo: "Código Secreto",
+        descricao: "Um hacker descobre um código que pode mudar o mundo.",
+        link: "https://drive.google.com/file/d/EXEMPLO5/view",
+        categoria: "Filme",
+        imagem: "tech" // Programmatically generated
+      },
+      {
+        titulo: "Universo Paralelo",
+        descricao: "Cientistas descobrem um portal para outra dimensão.",
+        link: "https://drive.google.com/file/d/EXEMPLO6/view",
+        categoria: "Série",
+        imagem: "space" // Programmatically generated
+      }
+    ];
+
+    // DOM Elements
+    const loginView = document.getElementById('loginView');
+    const catalogView = document.getElementById('catalogView');
+    const appHeader = document.getElementById('appHeader');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const catalogoEl = document.getElementById('catalogo');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const filterCategoria = document.getElementById('filterCategoria');
+
+    // Functions
+    function login(username, password) {
+      const user = users.find(user => user.username === username && user.password === password);
+      if (user) {
+        isLoggedIn = true;
+        showCatalogView();
+        return true;
+      }
+      return false;
+    }
+
+    function logout() {
+      isLoggedIn = false;
+      showLoginView();
+    }
+
+    function showLoginView() {
+      loginView.classList.remove('hidden');
+      catalogView.classList.add('hidden');
+      appHeader.classList.add('hidden');
+    }
+
+    function showCatalogView() {
+      loginView.classList.add('hidden');
+      catalogView.classList.remove('hidden');
+      appHeader.classList.remove('hidden');
+      carregarCatalogo();
+    }
+    
+    function generateImageFromSeed(seed, width = 280, height = 160) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      // Generate a pseudo-random color palette based on seed
+      const seedNum = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      
+      // Background gradient
+      let gradColors = {};
+      
+      switch(seed) {
+        case 'ocean':
+          gradColors = {start: '#1a5276', end: '#2980b9'};
+          break;
+        case 'city':
+          gradColors = {start: '#2c3e50', end: '#34495e'};
+          break;
+        case 'palace':
+          gradColors = {start: '#6c3483', end: '#8e44ad'};
+          break;
+        case 'magic':
+          gradColors = {start: '#1e8449', end: '#27ae60'};
+          break;
+        case 'tech':
+          gradColors = {start: '#212f3d', end: '#283747'};
+          break;
+        case 'space':
+          gradColors = {start: '#111', end: '#2c3e50'};
+          break;
+        default:
+          gradColors = {start: '#5D5CDE', end: '#3498db'};
+      }
+      
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, gradColors.start);
+      gradient.addColorStop(1, gradColors.end);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Add some shapes based on the seed
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      
+      for (let i = 0; i < 15; i++) {
+        const x = (seedNum * (i + 1) * 13) % width;
+        const y = (seedNum * (i + 2) * 17) % height;
+        const size = ((seedNum * (i + 3)) % 30) + 5;
+        
+        ctx.beginPath();
+        if (i % 3 === 0) {
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+        } else if (i % 3 === 1) {
+          ctx.rect(x, y, size, size);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + size, y + size / 2);
+          ctx.lineTo(x, y + size);
+        }
+        ctx.fill();
+      }
+      
+      return canvas.toDataURL('image/png');
+    }
+
+    function carregarCatalogo(filtro = 'all') {
+      catalogoEl.innerHTML = '';
+      
+      const itensFiltrados = filtro === 'all' 
+        ? catalogo 
+        : catalogo.filter(item => item.categoria === filtro);
+      
+      if (itensFiltrados.length === 0) {
+        catalogoEl.innerHTML = `
+          <div class="col-span-full text-center py-8">
+            <p class="text-gray-500 dark:text-gray-400">Nenhum item encontrado para esta categoria.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      itensFiltrados.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden';
+        
+        const imgSrc = generateImageFromSeed(item.imagem);
+        
+        card.innerHTML = `
+          <div class="relative">
+            <img src="${imgSrc}" alt="${item.titulo}" class="w-full h-40 object-cover">
+            <span class="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full">${item.categoria}</span>
+          </div>
+          <div class="p-4">
+            <h3 class="text-xl font-bold mb-2">${item.titulo}</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">${item.descricao}</p>
+            <div class="flex justify-between items-center">
+              <a href="${item.link}" target="_blank" class="text-primary hover:underline">Assistir</a>
+              <div class="stars">${[1, 2, 3, 4, 5].map(() => '<span class="star">★</span>').join('')}</div>
+            </div>
+          </div>
+        `;
+        
+        const stars = card.querySelectorAll('.star');
+        stars.forEach((star, i) => {
+          star.addEventListener('click', () => {
+            stars.forEach((s, j) => s.classList.toggle('selected', j <= i));
+            // Aqui você poderia salvar a avaliação em um banco de dados
+          });
+        });
+        
+        catalogoEl.appendChild(card);
+      });
+    }
+
+    // Event Listeners
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      if (login(username, password)) {
+        loginError.classList.add('hidden');
+      } else {
+        loginError.classList.remove('hidden');
+      }
+    });
+
+    logoutBtn.addEventListener('click', logout);
+    
+    filterCategoria.addEventListener('change', (e) => {
+      carregarCatalogo(e.target.value);
+    });
+
+    // Initialize
+    showLoginView();
+  </script>
+
+  <!-- GitHub Footer -->
+  <footer id="githubFooter" class="py-4 text-center text-xs text-gray-500 dark:text-gray-400 mt-8">
+    <p>CineFlix - Hospedado no <a href="https://github.com/seu-usuario/cineflix" target="_blank" class="text-primary hover:underline">GitHub</a></p>
+  </footer>
+</body>
+</html>
